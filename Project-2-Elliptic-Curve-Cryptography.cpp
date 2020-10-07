@@ -1,7 +1,7 @@
 #include <bits/stdc++.h>
 
 #define LHS(Y) (quad(Y))
-#define RHS(X) (cub((X)) + (coe[2]*quad((X)))%p + (coe[1]*(X))%p + (coe[0]%p)%p)
+#define RHS(X) ((cub((X)) + coe[2]*quad((X)) + coe[1]*(X) + coe[0]) % p)
 
 using namespace std;
 
@@ -22,7 +22,7 @@ map< int_pair, int > points; // use a map structure to store information of poin
 
 int inv[MAXN]; // inv[n] store the multiplicative inverse of n
 
-int cub(int x) {return (((x * x) % p) * x) % p;}
+int cub(int x) {return (x * x * x) % p;}
 int quad(int x) {return (x * x) % p;}
 
 void readCoe(int o, int l, int r) { // read the numbers in the parentheses
@@ -104,9 +104,9 @@ void initiate() { // input the elliptic curve and prime
 int mod(int b) {return (b % p < 0) ? (b % p + p) : (b % p);}
 
 void compPoints() {
-  for(int i = 0;i < p && cnt_p <= 3 * p;++i) { 
+  for(int i = 0;i < p && cnt_p <= p - 1;++i) { 
     // by Bezout's theorem, there should be atmost 3p points on the elliptic curve (of degree 3) over Z/pZ
-    for(int j = 0;j < p && cnt_p <= 3 * p;++j) {
+    for(int j = 0;j < p && cnt_p <= p - 1;++j) {
       if(mod(LHS(j)) == mod(RHS(i))) {
         points.insert({make_pair(i, j), cnt_p + 1});
         cnt_p++;
@@ -161,7 +161,8 @@ int mod_div(int a, int b) {
   return mod(a * inv[b]);
 }
 
-int_pair addition(int_pair P, int_pair Q) {
+/*
+int_pair addition2(int_pair P, int_pair Q) {
   if(P.first == Q.first && P.second == -1 * Q.second) 
     return INF; // if P = -Q, then P + Q = 0 at the infinity
   if(P == INF) return Q;
@@ -186,6 +187,36 @@ int_pair addition(int_pair P, int_pair Q) {
   res.second = -1*C*res.first - mod_div(v*w - z*u, w - u);
   res.first = mod(res.first);
   res.second = mod(res.second);
+  return res;
+}
+*/
+
+int_pair addition(int_pair P, int_pair Q) {
+  int_pair res;
+  if(P == INF) res = Q;
+  else if(Q == INF) res = P;
+  else if(P != Q) { // if P and Q are points on the curve which are different
+    if(P.first == Q.first) res = INF; // if P + Q = 0 then return 0(INf)
+    else { // else then use the addition formula
+      int u = P.first, v = P.second, w = Q.first, z = Q.second;
+      int C = mod_div(z - v, w - u);
+      res.first = quad(C) - coe[2] - u - w;
+      res.second = -1*C*res.first - mod_div(v*w - z*u, w - u);
+      res.first = mod(res.first);
+      res.second = mod(res.second);
+    }
+  }
+  else { // else if P and Q are same points in the curve
+    if(P.second == 0) res = INF; // if P's y-coordinate is zero, then 2P = 0
+    else {// else then use the tangent formula
+      int u = P.first, v = P.second;
+      int C = mod_div(3*quad(u) + 2*coe[2]*u + coe[1], 2*v);
+      res.first = quad(C) - coe[2] - 2*u;
+      res.second = -1*C*(res.first) - v + C*u;
+      res.first = mod(res.first);
+      res.second = mod(res.second);
+    }
+  }
   return res;
 }
 
